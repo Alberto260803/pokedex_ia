@@ -5,11 +5,22 @@ from PIL import Image
 from smolagents import CodeAgent, tool, LiteLLMModel
 
 # ---------------------------------------------------------
-# Configuración del modelo (Mistral vía LiteLLM)
+# Configuración inicial de Streamlit
 # ---------------------------------------------------------
+# Movido al principio porque st.set_page_config debe ser el primer comando
+LOGO_PATH = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+logo_img = Image.open(LOGO_PATH) if os.path.exists(LOGO_PATH) else "🔴"
 
+st.set_page_config(
+    page_title="Pokédex con IA", 
+    page_icon=logo_img,
+    layout="centered"
+)
+
+# ---------------------------------------------------------
+# Configuración del modelo y constantes
+# ---------------------------------------------------------
 MISTRAL_API_KEY = st.secrets.get("MISTRAL_API_KEY", os.getenv("MISTRAL_API_KEY"))
-
 POKEAPI_URL = "https://pokeapi.co/api/v2"
 
 TYPE_CHART = {
@@ -33,18 +44,15 @@ TYPE_CHART = {
     "normal": {"rock": 0.5, "ghost": 0, "steel": 0.5},
 }
 
-
 def _fetch_pokemon(name: str) -> dict:
     resp = requests.get(f"{POKEAPI_URL}/pokemon/{name.lower().strip()}", timeout=10)
     resp.raise_for_status()
     return resp.json()
 
-
 @tool
 def get_pokemon_info(name: str) -> str:
     """
     Obtiene información de un Pokémon: tipos, estadísticas base y habilidades.
-
     Args:
         name: Nombre del Pokémon en inglés (ej. "pikachu", "charizard").
     """
@@ -65,13 +73,11 @@ def get_pokemon_info(name: str) -> str:
         f"Habilidades: {', '.join(habilidades)}"
     )
 
-
 @tool
 def compare_pokemon(name_a: str, name_b: str) -> str:
     """
     Compara dos Pokémon y estima quién tendría ventaja de tipo en un combate,
     usando la tabla oficial de efectividades.
-
     Args:
         name_a: Nombre del primer Pokémon (en inglés).
         name_b: Nombre del segundo Pokémon (en inglés).
@@ -106,7 +112,6 @@ def compare_pokemon(name_a: str, name_b: str) -> str:
         f"Efectividad de {b['name'].capitalize()} atacando a {a['name'].capitalize()}: x{mult_b_ataca_a}"
     )
 
-
 @st.cache_resource
 def get_agent():
     model = LiteLLMModel(
@@ -119,7 +124,6 @@ def get_agent():
         add_base_tools=False,
     )
 
-
 SYSTEM_INTRO = (
     "Eres el Profesor Oak, un experto Pokémon. Usa las herramientas disponibles "
     "para consultar datos reales antes de responder. Da respuestas claras, con "
@@ -127,20 +131,35 @@ SYSTEM_INTRO = (
 )
 
 # ---------------------------------------------------------
-# Interfaz Streamlit
+# Interfaz Streamlit - CSS Personalizado
 # ---------------------------------------------------------
-
-LOGO_PATH = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
-logo_img = Image.open(LOGO_PATH) if os.path.exists(LOGO_PATH) else "🔴"
-
-st.set_page_config(page_title="Pokédex con IA", page_icon=logo_img)
-
-# CSS: forzamos que las 3 columnas midan exactamente lo mismo
-# (flex-basis: 0 + flex-grow: 1 ignora el ancho del contenido, y el !important
-# gana a cualquier estilo interno de Streamlit que compita con el nuestro)
 st.markdown(
     """
     <style>
+    /* Estilos para el título principal con gradiente */
+    .pokedex-title {
+        font-size: 3rem;
+        font-weight: 800;
+        background: -webkit-linear-gradient(45deg, #FF416C, #FF4B2B);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    
+    /* Panel de introducción elegante */
+    .intro-card {
+        background-color: rgba(255, 75, 75, 0.05);
+        border-left: 4px solid #FF4B2B;
+        padding: 1.5rem;
+        border-radius: 0 12px 12px 0;
+        margin-bottom: 2rem;
+        margin-top: 1rem;
+        font-size: 1.05rem;
+        line-height: 1.6;
+    }
+
+    /* Modificando los botones de sugerencia para que parezcan 'pills' modernas */
     div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
         flex: 1 1 0px !important;
         width: 0 !important;
@@ -150,27 +169,62 @@ st.markdown(
     }
     div[data-testid="stButton"] > button {
         width: 100% !important;
-        height: 3.6rem !important;
+        height: 100% !important;
+        min-height: 80px;
         white-space: normal !important;
-        line-height: 1.25 !important;
-        font-size: 0.9rem !important;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(255, 255, 255, 0.03);
+        transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+    }
+    div[data-testid="stButton"] > button:hover {
+        border-color: #FF4B2B;
+        background-color: rgba(255, 75, 43, 0.1);
+        transform: translateY(-3px);
+        box-shadow: 0 6px 15px rgba(255, 75, 43, 0.15);
+        color: white;
+    }
+    
+    /* Centrar verticalmente las columnas del header */
+    [data-testid="column"] {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-col_logo, col_title = st.columns([1, 6])
-with col_logo:
-    st.image(LOGO_PATH, width=64)
-with col_title:
-    st.title("Pokédex con IA — Profesor Oak")
+# Header
+try:
+    # Intenta usar alineación vertical central (Streamlit 1.30+)
+    col_logo, col_title = st.columns([1, 6], vertical_alignment="center")
+except TypeError:
+    # Fallback para versiones más antiguas de Streamlit
+    col_logo, col_title = st.columns([1, 6])
 
-st.caption(
-    "Pregúntame sobre cualquier Pokémon (en inglés, ej. *pikachu*, *garchomp*, "
-    "*charizard*) o pídeme que compare dos para saber quién gana un combate. "
-    "Uso datos reales de la PokéAPI y razono con Mistral a través de smolagents."
-)
+with col_logo:
+    if os.path.exists(LOGO_PATH):
+        st.image(LOGO_PATH, width=70)
+    else:
+        st.markdown("<h1 style='font-size: 3rem; margin:0;'>🔴</h1>", unsafe_allow_html=True)
+
+with col_title:
+    st.markdown('<p class="pokedex-title">Pokédex con IA</p>', unsafe_allow_html=True)
+    st.markdown("<h4 style='color: #888; margin-top:-10px;'>Profesor Oak</h4>", unsafe_allow_html=True)
+
+# Tarjeta de introducción
+st.markdown("""
+<div class="intro-card">
+    <strong>¡Hola! Soy el Profesor Oak.</strong><br>
+    Pregúntame sobre cualquier Pokémon (en inglés, ej. <em>pikachu, garchomp, charizard</em>) 
+    o pídeme que compare dos para saber quién gana un combate. 
+    Uso datos reales de la PokéAPI y razono con inteligencia artificial avanzada.
+</div>
+""", unsafe_allow_html=True)
 
 if not MISTRAL_API_KEY:
     st.error(
@@ -179,34 +233,43 @@ if not MISTRAL_API_KEY:
     )
     st.stop()
 
+# Inicializar historial
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Mostrar historial con avatares personalizados
 for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
+    avatar_icon = "🎒" if msg["role"] == "user" else "🔴"
+    with st.chat_message(msg["role"], avatar=avatar_icon):
         st.markdown(msg["content"])
 
 pregunta_ejemplo = None
+
 # Los botones de ejemplo solo se muestran antes de la primera pregunta
 if not st.session_state.messages:
+    st.markdown("<p style='text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 10px;'>Prueba a preguntar algo como:</p>", unsafe_allow_html=True)
     ejemplo_cols = st.columns(3)
     ejemplos = [
-        "Háblame de garchomp",
-        "¿Quién gana, charizard o blastoise?",
-        "Recomiéndame un pokémon de fuego para empezar",
+        "Háblame de Garchomp y sus habilidades",
+        "¿Quién gana, Charizard o Blastoise?",
+        "Recomiéndame un Pokémon de fuego para empezar",
     ]
     for col, ejemplo in zip(ejemplo_cols, ejemplos):
         if col.button(ejemplo):
-            pregunta_ejemplo = ejemplo
+            # Limpiamos el emoji inicial para la búsqueda real (opcional)
+            pregunta_ejemplo = ejemplo.split(" ", 1)[1] if " " in ejemplo else ejemplo
 
+# Input del usuario
 user_input = st.chat_input("Escribe tu pregunta sobre Pokémon...") or pregunta_ejemplo
 
 if user_input:
+    # Añadir mensaje de usuario al historial
     st.session_state.messages.append({"role": "user", "content": user_input})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar="🎒"):
         st.markdown(user_input)
 
-    with st.chat_message("assistant"):
+    # Respuesta del asistente
+    with st.chat_message("assistant", avatar="🔴"):
         with st.spinner("Consultando la Pokédex..."):
             agent = get_agent()
             prompt = f"{SYSTEM_INTRO}\n\nPregunta del usuario: {user_input}"
@@ -216,4 +279,5 @@ if user_input:
                 respuesta = f"Vaya, algo ha fallado consultando la Pokédex: {e}"
         st.markdown(respuesta)
 
+    # Guardar respuesta
     st.session_state.messages.append({"role": "assistant", "content": respuesta})
