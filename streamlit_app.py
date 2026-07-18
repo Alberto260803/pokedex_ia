@@ -136,9 +136,19 @@ SYSTEM_INTRO = (
 st.markdown(
     """
     <style>
-    /* Ocultar el icono de enlace (ancla) que pone Streamlit por defecto en los títulos */
-    a.header-anchor {
+    /* Ocultar el icono de enlace (ancla) por la fuerza bruta (cubre todas las versiones de Streamlit) */
+    h1 a, 
+    h2 a, 
+    h3 a, 
+    a.header-anchor, 
+    [data-testid="stHeaderActionElements"],
+    .pokedex-title a,
+    .pokedex-title svg {
         display: none !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        width: 0 !important;
+        height: 0 !important;
     }
 
     /* Estilos para el título principal con gradiente */
