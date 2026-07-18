@@ -213,8 +213,8 @@ with col_logo:
         st.markdown("<h1 style='font-size: 3rem; margin:0;'>🔴</h1>", unsafe_allow_html=True)
 
 with col_title:
-    st.markdown('<p class="pokedex-title">Pokédex con IA</p>', unsafe_allow_html=True)
-    st.markdown("<h4 style='color: #888; margin-top:-10px;'>Profesor Oak</h4>", unsafe_allow_html=True)
+    # Título unificado en una sola línea con degradado, para que no parezca un enlace o subtítulo
+    st.markdown('<h1 class="pokedex-title" style="margin-bottom: 0; line-height: 1.2;">Pokédex con IA — Profesor Oak</h1>', unsafe_allow_html=True)
 
 # Tarjeta de introducción
 st.markdown("""
@@ -249,6 +249,8 @@ pregunta_ejemplo = None
 if not st.session_state.messages:
     st.markdown("<p style='text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 10px;'>Prueba a preguntar algo como:</p>", unsafe_allow_html=True)
     ejemplo_cols = st.columns(3)
+    
+    # Textos completamente limpios, sin emojis
     ejemplos = [
         "Háblame de Garchomp y sus habilidades",
         "¿Quién gana, Charizard o Blastoise?",
@@ -256,8 +258,8 @@ if not st.session_state.messages:
     ]
     for col, ejemplo in zip(ejemplo_cols, ejemplos):
         if col.button(ejemplo):
-            # Limpiamos el emoji inicial para la búsqueda real (opcional)
-            pregunta_ejemplo = ejemplo.split(" ", 1)[1] if " " in ejemplo else ejemplo
+            # Asignamos el texto exacto, garantizando que no se recorta ninguna letra
+            pregunta_ejemplo = ejemplo
 
 # Input del usuario
 user_input = st.chat_input("Escribe tu pregunta sobre Pokémon...") or pregunta_ejemplo
