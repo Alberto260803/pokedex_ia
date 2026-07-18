@@ -136,14 +136,23 @@ logo_img = Image.open(LOGO_PATH) if os.path.exists(LOGO_PATH) else "🔴"
 st.set_page_config(page_title="Pokédex con IA", page_icon=logo_img)
 
 # CSS: botones de ejemplo con el mismo tamaño y texto centrado
+# (los data-testid correctos en Streamlit son stButton / stColumn / stHorizontalBlock,
+# no "column" — con el selector equivocado esta regla nunca se aplicaba)
 st.markdown(
     """
     <style>
-    div[data-testid="column"] button {
-        height: 3.2rem;
+    div[data-testid="stHorizontalBlock"] div[data-testid="stColumn"] {
+        display: flex;
+    }
+    div[data-testid="stButton"] {
         width: 100%;
+    }
+    div[data-testid="stButton"] > button {
+        width: 100%;
+        height: 3.6rem;
         white-space: normal;
-        line-height: 1.2;
+        line-height: 1.25;
+        font-size: 0.9rem;
     }
     </style>
     """,
