@@ -1,13 +1,13 @@
 import os
 import requests
 import streamlit as st
+from PIL import Image
 from smolagents import CodeAgent, tool, LiteLLMModel
 
 # ---------------------------------------------------------
 # Configuración del modelo (Mistral vía LiteLLM)
 # ---------------------------------------------------------
-# En Streamlit Community Cloud, la key se configura en:
-# App settings -> Secrets, como: MISTRAL_API_KEY = "..."
+
 MISTRAL_API_KEY = st.secrets.get("MISTRAL_API_KEY", os.getenv("MISTRAL_API_KEY"))
 
 POKEAPI_URL = "https://pokeapi.co/api/v2"
@@ -129,8 +129,33 @@ SYSTEM_INTRO = (
 # ---------------------------------------------------------
 # Interfaz Streamlit
 # ---------------------------------------------------------
-st.set_page_config(page_title="Pokédex con IA", page_icon="🔴")
-st.title("🔴 Pokédex con IA — Profesor Oak")
+
+LOGO_PATH = os.path.join(os.path.dirname(__file__), "assets", "logo.png")
+logo_img = Image.open(LOGO_PATH) if os.path.exists(LOGO_PATH) else "🔴"
+
+st.set_page_config(page_title="Pokédex con IA", page_icon=logo_img)
+
+# CSS: botones de ejemplo con el mismo tamaño y texto centrado
+st.markdown(
+    """
+    <style>
+    div[data-testid="column"] button {
+        height: 3.2rem;
+        width: 100%;
+        white-space: normal;
+        line-height: 1.2;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+col_logo, col_title = st.columns([1, 6])
+with col_logo:
+    st.image(LOGO_PATH, width=64)
+with col_title:
+    st.title("Pokédex con IA — Profesor Oak")
+
 st.caption(
     "Pregúntame sobre cualquier Pokémon (en inglés, ej. *pikachu*, *garchomp*, "
     "*charizard*) o pídeme que compare dos para saber quién gana un combate. "
@@ -151,16 +176,18 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-ejemplo_cols = st.columns(3)
-ejemplos = [
-    "Háblame de garchomp",
-    "¿Quién gana, charizard o blastoise?",
-    "Recomiéndame un pokémon de fuego para empezar",
-]
 pregunta_ejemplo = None
-for col, ejemplo in zip(ejemplo_cols, ejemplos):
-    if col.button(ejemplo):
-        pregunta_ejemplo = ejemplo
+# Los botones de ejemplo solo se muestran antes de la primera pregunta
+if not st.session_state.messages:
+    ejemplo_cols = st.columns(3)
+    ejemplos = [
+        "Háblame de garchomp",
+        "¿Quién gana, charizard o blastoise?",
+        "Recomiéndame un pokémon de fuego para empezar",
+    ]
+    for col, ejemplo in zip(ejemplo_cols, ejemplos):
+        if col.button(ejemplo):
+            pregunta_ejemplo = ejemplo
 
 user_input = st.chat_input("Escribe tu pregunta sobre Pokémon...") or pregunta_ejemplo
 
