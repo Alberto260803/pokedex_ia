@@ -1,4 +1,4 @@
-# 🔴 Pokédex con IA — Profesor Oak
+# Pokédex con IA — Profesor Oak
  
 Agente conversacional (smolagents + Mistral) que responde preguntas sobre
 Pokémon y compara combates usando datos reales de la PokéAPI, en vez de
